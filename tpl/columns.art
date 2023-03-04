@@ -1,0 +1,36 @@
+import { h } from 'vue';
+{{if getColumns(list).some(v=> v.key == 'picture')}}
+import { NAvatar } from 'naive-ui';
+{{/if}}
+
+// 自定义默认cell渲染
+const  renderCellCustom = (key) => (record) => {
+  return record[key] || '-'
+}
+
+{{if extendFn}}
+{{#extendFn}}
+{{/if}}
+
+export const columns = [
+ {{each getColumns(list)}}
+  {
+    "title": "{{$value.title}}",
+    "key": "{{$value.key}}",
+    "width": "{{$value.width || 100}}",
+    {{if $value.key == 'picture'}}
+    render(row) {
+      return h(NAvatar, {
+        size: 48,
+        src: row.avatar,
+      });
+    },
+    {{else if $value.render}}
+    "render":{{#$value.render}},
+    {{else}}
+    "render":(row)=>renderCellCustom('{{$value.key}}')(row),
+    {{/if}}
+    
+  }{{if $index !== getColumns(list).length -1}},{{/if}}
+{{/each}}
+];

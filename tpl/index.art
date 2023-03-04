@@ -1,0 +1,320 @@
+<!-- {{desc}} -->
+<template>
+  <n-card :bordered="false" class="proCard">
+    <BasicForm @register="register" @submit="handleSubmit" @reset="handleReset">
+    </BasicForm>
+
+    <BasicTable
+      :columns="columns"
+      :request="loadDataTable"
+      :row-key="(row) => row.id"
+      ref="actionRef"
+      :actionColumn="actionColumn"
+      @update:checked-row-keys="onCheckedRow"
+      :scroll-x="1090"
+    >
+      <template #tableTitle>
+      <n-space>
+        {{if addBtn}}
+        <n-button type="primary" @click="addTable">
+          <template #icon>
+            <n-icon>
+              <PlusOutlined />
+            </n-icon>
+          </template>
+          新建
+        </n-button>
+        {{/if}}
+        {{if importBtn}}
+        <n-button type="primary" @click="importTable">
+          {{importBtnText || '导入数据'}}
+        </n-button>
+        {{/if}}
+        {{if exportBtn}}
+        <n-button type="primary" @click="exportTable">
+         {{exportBtnText || '导出查询数据'}}
+        </n-button>
+        {{/if}}
+        </n-space>
+      </template>
+
+      <template #toolbar>
+        <n-button type="primary" @click="reloadTable">刷新数据</n-button>
+      </template>
+    </BasicTable>
+{{if addBtn}}
+    <n-modal v-model:show="showModal" :show-icon="false" preset="dialog" title="新建">
+      <n-form
+        :model="formParams"
+        :rules="rules"
+        ref="formRef"
+        label-placement="left"
+        :label-width="80"
+        class="py-4"
+      >
+      {{each getAddFormField(list)}}
+        {{if $value.component == 'NSelect'}}
+        <n-form-item label="{{$value.title}}" path="{{$value.field || $value.key}}">
+        <n-select
+          placeholder="请选择{{$value.title}}"
+          :options="addOptions.{{$value.field || $value.key}}Opt"
+          v-model:value="formParams.{{$value.field || $value.key}}"
+        />
+        </n-form-item>
+        {{else if $value.component == 'NDatePicker'}}
+         <n-form-item label="{{$value.title}}" path="{{$value.field || $value.key}}">
+          <n-date-picker type="{{$value.type || date}}" placeholder="请选择{{$value.title}}" v-model:value="formParams.{{$value.field || $value.key}}" />
+        </n-form-item>
+        {{else if !$value.component || $value.component == 'NInputNumber'}}
+        <n-form-item label="{{$value.title}}" path="{{$value.field || $value.key}}">
+          <n-input placeholder="请输入{{$value.title}}" v-model:value="formParams.{{$value.field || $value.key}}" />
+        </n-form-item>
+        {{/if}}
+      {{/each}}
+      </n-form>
+
+      <template #action>
+        <n-space>
+          <n-button @click="() => (showModal = false)">取消</n-button>
+          <n-button type="info" :loading="formBtnLoading" @click="confirmForm">确定</n-button>
+        </n-space>
+      </template>
+    </n-modal>
+ {{/if}}   
+  </n-card>
+</template>
+
+<script lang="ts" setup>
+  import { h, reactive, ref, onBeforeMount, unref } from 'vue';
+  import { useDialog, useMessage } from 'naive-ui';
+  import { BasicTable, TableAction } from '@/components/Table';
+  import { BasicForm, FormSchema, useForm } from '@/components/Form/index';
+  
+  import {
+    {{each apiImport}}{{$value}},{{/each}}
+  } from '{{apiPath}}';
+  import { columns } from './columns';
+  import { PlusOutlined } from '@vicons/antd';
+  import { useRouter } from 'vue-router';
+  {{if extendEntryFn}}{{#extendEntryFn}}{{/if}}
+
+  const Message = useMessage();
+  const dialog = useDialog();
+  const rules = {};
+
+  const schemas = ref<FormSchema[]>([
+    {{each getFormField(list)}}
+    {
+      field: '{{$value.field||$value.key}}',
+      component: '{{$value.component || 'NInputNumber'}}',
+      label: "{{if $value.fieldName}}{{$value.fieldName}}{{else if $value.component == 'NSelect'}}选择{{$value.title}}{{else}}{{$value.title}}{{/if}}",
+      componentProps: {
+        {{if $value.component == 'NSelect'}}
+        placeholder: '请选择{{$value.title}}',
+        filterable: {{$value.filterable || false}},
+        options: {{if typeof($value.options) == 'string'}}{{$value.options}}{{else}}{{#stringify($value.options||[])}}{{/if}},
+        onUpdateValue: (e: any) => {
+          console.log(e);
+        },
+        {{/if}}
+        {{if !$value.component || $value.component == 'NInputNumber'}}
+        placeholder: '请输入{{$value.title}}',
+        showButton: {{$value.showButton || false}},
+        onInput: (e: any) => {
+          console.log(e);
+        },
+        {{/if}}
+        {{if $value.component == 'NDatePicker' && $value.type}}
+        type:"{{$value.type}}",
+        {{/if}}
+      },
+    },
+    {{/each}}
+  ]);
+
+  const addOptions = ref({
+  {{each getAddFormField(list)}}
+  {{if $value.options}}
+    {{$value.field || $value.key}}Opt:{{#stringify($value.options||[])}},
+  {{/if}}
+  {{/each}}
+  });
+
+  const router = useRouter();
+  const formRef: any = ref(null);
+  const actionRef = ref();
+
+  const showModal = ref(false);
+  const formBtnLoading = ref(false);
+  const formParams = reactive({
+    {{each getAddFormField(list)}}
+    {{$value.field||$value.key}}:{{if $value.value !== undefined}}{{#$value.value}}{{else}}''{{/if}},
+    {{/each}}
+    {{each extendFormField}}
+    {{$value.field||$value.key}}:'',
+    {{/each}}
+    
+  });
+
+  const tableParams = ref({
+    pageSize: 10,
+    pageNum: 1,
+  });
+
+{{if actionColumn}}
+  const actionColumn = reactive({
+    width: {{actionColumn.width || 140}},
+    title: '操作',
+    key: 'action',
+    fixed: 'right',
+    align:"{{#(actionColumn.align || 'center')}}",
+    render(record) {
+      return h(TableAction as any, {
+        style: '{{actionColumn.style||'button'}}',
+        actions:[
+          {{each actionColumn.actions}}
+            {
+              label: '{{$value.label}}',
+              onClick: {{$value.onClick || 'handleUpdate'}}.bind(null, record),
+              ifShow: {{#$value.ifShow || '()=>{return true}'}},
+              auth: {{#stringify($value.auth|| [])}},
+            },
+          {{/each}}
+        ],
+        dropDownActions: [
+          
+        ],
+        select: (key) => {
+          window['$message'].info(`您点击了，${key} 按钮`);
+        },
+      });
+    },
+  });
+{{else}}
+const actionColumn = null
+{{/if}}
+
+  const organRef = reactive({
+    pageNum: 1,
+  });
+
+  const [register, { getFieldsValue }] = useForm({
+    gridProps: { cols: '1 s:1 m:2 l:3 xl:4 2xl:4' },
+    labelWidth: 80,
+    schemas,
+  });
+
+  function addTable() {
+    showModal.value = true;
+  }
+  
+  async function importTable() {
+    // TODO
+    console.log('导入数据');
+    console.log(getFieldsValue());
+    const { success, data } = await {{apiImport[1]}}({
+      ...getFieldsValue(),
+      ...tableParams.value,
+    });
+    if (!success) {
+      Message.error('导入失败');
+      return false;
+    }
+    return data;
+  }
+
+  async function exportTable() {
+    // TODO
+    console.log('导出查询数据');
+    console.log(getFieldsValue());
+    const { success, data } = await {{apiImport[1]}}({
+      ...getFieldsValue(),
+      ...tableParams.value,
+    });
+    if (!success) {
+      Message.error('导出失败');
+      return false;
+    }
+    return data;
+  }
+
+  const loadDataTable = async (res) => {
+    try {
+      const { success, data } = await {{apiImport[0]}}({
+        ...getFieldsValue(),
+        ...tableParams.value,
+        ...res,
+      });
+
+      if (!success) {
+        Message.error('暂无数据');
+        return [];
+      }
+      return data;
+    } catch (error) {
+      throw error;
+    }
+  };
+
+  function onCheckedRow(rowKeys) {
+    console.log(rowKeys);
+  }
+
+  function reloadTable() {
+    actionRef.value.reload();
+  }
+
+  function confirmForm(e) {
+    e.preventDefault();
+    debugger
+    formBtnLoading.value = true;
+    formRef.value.validate((errors) => {
+      if (!errors) {
+        window['$message'].success('新建成功');
+        console.log(formParams)
+        setTimeout(() => {
+          showModal.value = false;
+          reloadTable();
+        });
+      } else {
+        window['$message'].error('请填写完整信息');
+      }
+      formBtnLoading.value = false;
+    });
+  }
+  {{if actionColumn && actionColumn.actions && actionColumn.actions.find(v=>v.onClick == 'handleEdit')}}
+  function handleEdit(record: Recordable) {
+    console.log('点击了编辑', record);
+    router.push({ name: '{{actionColumn.actions.find(v=>v.onClick == 'handleEdit').toEditPageRouterName}}', params: {id:record.{{actionColumn.actions.find(v=>v.onClick == 'handleEdit').toEditPageParams}}} });
+  }
+  {{/if}}
+
+  {{if actionColumn && actionColumn.actions && actionColumn.actions.find(v=>v.onClick == 'handleDelete')}}
+  function handleDelete(record: Recordable) {
+    console.log('点击了删除', record);
+    window['$message'].info('点击了删除');
+  }
+  {{/if}}
+
+  function handleSubmit(values: Recordable) {
+    console.log(values);
+    const tablePam = { ...values, ...unref(tableParams) };
+    actionRef.value.reload(tablePam);
+  }
+
+  function handleReset(values: Recordable) {
+    console.log(values);
+  }
+
+  {{if actionColumn && actionColumn.actions && actionColumn.actions.find(v=>v.injectFn)}}
+    {{each actionColumn.actions.filter(v=>v.injectFn)}}
+    {{#$value.injectFn}}
+    {{/each}}
+  {{/if}}
+
+  onBeforeMount(async () => {
+    {{#onBeforeMountFn}}
+  });
+</script>
+
+<style lang="less" scoped></style>
