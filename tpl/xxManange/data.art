@@ -9,85 +9,42 @@ import { BasicColumn, FormSchema, useTable } from '/@/components/Table'
 import { menuList } from '/@/api/system/menu'
 
 const columns: BasicColumn[] = [
-    {
-        title: '菜单名称',
-        dataIndex: 'name',
-        width: 200,
-        align: 'left',
-    },
-    {
-        title: '图标',
-        dataIndex: 'icon',
-        width: 50,
-        customRender: ({ record }) => {
-            return h(Icon, { icon: record.icon });
+    {{each basicColumns}}
+        {
+            title: '{{$value.title}}',
+            dataIndex: '{{$value.dataIndex}}',
+
+            {{if $value.width}}
+                width: {{$value.width}},
+            {{/if}}
+
+            {{if $value.align}}
+                align: '{{$value.align}}',
+            {{/if}}
+
+            {{if $value.customRender}}
+                customRender: {{#$value.customRender}}
+            {{/if}}
         },
-    },
-    {
-        title: '权限标识',
-        dataIndex: 'permission',
-        width: 180,
-    },
-    {
-        title: '组件',
-        dataIndex: 'component',
-    },
-    {
-        title: '排序',
-        dataIndex: 'sort',
-        width: 50,
-    },
-    {
-        title: '状态',
-        dataIndex: 'status',
-        width: 80,
-        customRender: ({ record }) => {
-            const status = record.status;
-            const enable = ~~status === 0;
-            const color = enable ? 'green' : 'red';
-            const text = enable ? '启用' : '停用';
-            return h(Tag, { color: color }, () => text);
-        },
-    },
-    {
-        title: '创建时间',
-        dataIndex: 'createTime',
-        width: 180,
-    }
+    {{/each}}
 ]
 
 const searchFormSchemas: FormSchema[] = [
-    {
-        field: 'keyword',
-        label: '关键字',
-        component: 'Input',
-        componentProps: {
-            placeholder: '请输入名称/编码',
+    {{each searchFormSchemas}}
+        {
+            field: '{{$value.field}}',
+            label: '{{$value.label}}',
+            component: '{{$value.component}}',
+
+            {{if $value.componentProps}}
+                componentProps: {{#stringify($value.componentProps)}},
+            {{/if}}
+
+            {{if $value.colProps}}
+                colProps: {{#stringify($value.colProps)}},
+            {{/if}}
         },
-        colProps: { span: 8 }
-    },
-    {
-        field: 'startDate',
-        label: '起始时间',
-        component: 'DatePicker',
-        componentProps: {
-            style: {
-                width: '100%'
-            }
-        },
-        colProps: { span: 8 }
-    },
-    {
-        field: 'endDate',
-        label: '截止时间',
-        component: 'DatePicker',
-        componentProps: {
-            style: {
-                width: '100%'
-            }
-        },
-        colProps: { span: 8 }
-    }
+    {{/each}}
 ]
 
 export const useRegister = () => useTable({
