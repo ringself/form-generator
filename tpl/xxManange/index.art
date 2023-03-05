@@ -1,0 +1,43 @@
+<template>
+    <basic-table @register="registerTable">
+        {{if needToolbarSlot}}
+        <template #toolbar>
+            {{if needCreate}}
+            <a-button type="primary" @click.stop="handleCreate">新增{{name}}</a-button>
+            {{/if}}
+        </template>
+        {{/if}}
+
+        {{if tableActions.length}}
+        <template #action="{ record }">
+            <table-action :actions="useTableActions(record)" />
+        </template>
+        {{/if}}
+    </basic-table>
+</template>
+<script lang="ts" setup>
+import { BasicTable{{if tableActions.length}}, TableAction{{/if}} } from '/@/components/Table'
+import { useRegister{{if tableActions.length}}, useActions{{/if}} } from './xx.data'
+
+const [ registerTable ] = useRegister()
+
+{{if tableActions.length}}
+const useTableActions = (record: any) => useActions(record, {
+{{each tableActions}}
+    {{if $value.actionHandler}}
+        {{$value.actionHandler}},
+    {{/if}}
+{{/each}} 
+})
+{{/if}}
+
+{{if needCreate}}
+function handleCreate() {
+    // TODO 需手动加入新增弹框
+}
+{{/if}}
+
+{{each tableActions}}
+    {{$value.actionHandlerContent}}
+{{/each}}
+</script>

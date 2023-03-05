@@ -8,7 +8,7 @@ const template = require('art-template')
 const prettier = require('prettier')
 
 // 设置模板引擎根路径
-template.defaults.root = path.join(__dirname, '../tpl')
+template.defaults.root = path.join(__dirname, '../tpl/xxManange')
 // 设置模块引擎扩展名
 template.defaults.extname = '.art'
 // 导入变量
@@ -109,7 +109,7 @@ function generate({
   )
   // fs.writeFileSync(path.join(__dirname, formConfigOutputPath), html)
 
-  var columns = template('columns', columnsData)
+  var columns = template('data', columnsData)
   // console.log(columns)
   writeFileByUser(
     columnsConfigOutputPath,
@@ -128,27 +128,27 @@ function main(configPath, outputPath) {
   let outputDir = outputPath || path.join(__dirname, `../dist/`)
   const { directoryList } = getFiles(configDir)
   directoryList.forEach((page, i) => {
-    const formConfigImportPath = path.join(configDir, `/${page}/form.js`)
+    const formConfigImportPath = path.join(configDir, `/${page}/index.js`)
     const formConfigOutputPath = path.join(outputDir, `/${page}/index.vue`)
-    const columnsConfigImportPath = path.join(configDir, `/${page}/columns.js`)
-    const columnsConfigOutputPath = path.join(outputDir, `/${page}/columns.ts`)
+    const columnsConfigImportPath = path.join(configDir, `/${page}/data.js`)
+    const columnsConfigOutputPath = path.join(outputDir, `/${page}/xx.data.ts`)
     generate({
       formConfigImportPath,
       formConfigOutputPath,
       columnsConfigImportPath,
       columnsConfigOutputPath,
     })
-    console.log(
-      `${page} done:\n${formConfigImportPath} => ${formConfigOutputPath}\n${columnsConfigImportPath} => ${columnsConfigOutputPath}`
-    )
+    // console.log(
+    //   `${page} done:\n${formConfigImportPath} => ${formConfigOutputPath}\n${columnsConfigImportPath} => ${columnsConfigOutputPath}`
+    // )
   })
 }
 
-// let configPath = path.join(__dirname, '../config')
-// let outputPath = path.join(
-//   __dirname,
-//   '../../../jkkc-exam-ui/src/views/candidate/dist'
-// )
+let configPath = path.join(__dirname, '../config')
+let outputPath = path.join(
+  __dirname,
+  '../../hestia/src/views'
+)
 
-// main(configPath, outputPath)
-main()
+main(configPath, outputPath)
+// main()
