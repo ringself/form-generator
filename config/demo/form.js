@@ -12,6 +12,7 @@ exports.config = {
   extendFormField: [
     {
       field: 'examPlanId',
+      value: 'route.query.examPlanId',
     },
   ],
   actionColumn: {
@@ -82,4 +83,4 @@ exports.config = {
       schemas.value[0]!.componentProps!.options = options;
     }
   `,
-};
+}

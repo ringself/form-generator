@@ -144,11 +144,11 @@ function main(configPath, outputPath) {
   })
 }
 
-// let configPath = path.join(__dirname, '../config')
-// let outputPath = path.join(
-//   __dirname,
-//   '../../../jkkc-exam-ui/src/views/candidate/dist'
-// )
+let configPath = path.join(__dirname, '../config')
+let outputPath = path.join(
+  __dirname,
+  '../../../jkkc-exam-ui/src/views/candidate/dist'
+)
 
-// main(configPath, outputPath)
-main()
+main(configPath, outputPath)
+// main()

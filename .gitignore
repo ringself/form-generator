@@ -4,6 +4,8 @@ node_modules
 es
 lib
 dist
+config/*
+!/config/demo
 
 # lock files
 package-lock.json
@@ -23,3 +25,5 @@ pnpm-debug.log*
 *.njsproj
 *.sln
 *.sw?
+
+
